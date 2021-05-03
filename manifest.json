@@ -1,0 +1,19 @@
+{
+    "required_api_version": "^2.0.0",
+    "name": "Diccionario de la Lengua Española de la RAE",
+    "description": "Busca definiciones de términos según la Real Academia Española",
+    "developer_name": "Sebastian Correa",
+    "icon": "images/icon.png",
+    "options": {
+      "query_debounce": 0.1
+    },
+    "preferences": [
+      {
+        "id": "demo_kw",
+        "type": "keyword",
+        "name": "Demo",
+        "description": "Demo extension",
+        "default_value": "dm"
+      }
+    ]
+}

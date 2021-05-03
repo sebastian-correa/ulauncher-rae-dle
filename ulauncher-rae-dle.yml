@@ -1,0 +1,37 @@
+name: ulauncher-rae-dle
+channels:
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - beautifulsoup4=4.9.3=pyha847dfd_0
+  - brotlipy=0.7.0=py39h27cfd23_1003
+  - ca-certificates=2021.4.13=h06a4308_1
+  - certifi=2020.12.5=py39h06a4308_0
+  - cffi=1.14.5=py39h261ae71_0
+  - chardet=4.0.0=py39h06a4308_1003
+  - cryptography=3.4.7=py39hd23ed53_0
+  - idna=2.10=pyhd3eb1b0_0
+  - ld_impl_linux-64=2.33.1=h53a641e_7
+  - libffi=3.3=he6710b0_2
+  - libgcc-ng=9.1.0=hdf63c60_0
+  - libstdcxx-ng=9.1.0=hdf63c60_0
+  - ncurses=6.2=he6710b0_1
+  - openssl=1.1.1k=h27cfd23_0
+  - pip=21.0.1=py39h06a4308_0
+  - pycparser=2.20=py_2
+  - pyopenssl=20.0.1=pyhd3eb1b0_1
+  - pysocks=1.7.1=py39h06a4308_0
+  - python=3.9.4=hdb3f193_0
+  - readline=8.1=h27cfd23_0
+  - requests=2.25.1=pyhd3eb1b0_0
+  - setuptools=52.0.0=py39h06a4308_0
+  - six=1.15.0=py39h06a4308_0
+  - soupsieve=2.2.1=pyhd3eb1b0_0
+  - sqlite=3.35.4=hdfb4753_0
+  - tk=8.6.10=hbc83047_0
+  - tzdata=2020f=h52ac0ba_0
+  - urllib3=1.26.4=pyhd3eb1b0_0
+  - wheel=0.36.2=pyhd3eb1b0_0
+  - xz=5.2.5=h7b6447c_0
+  - zlib=1.2.11=h7b6447c_3
+prefix: /home/sebastian/miniconda3/envs/ulauncher-rae-dle
