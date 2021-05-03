@@ -41,7 +41,31 @@ class KeywordQueryEventListener(EventListener):
                 )
             ]
         else:
-            pass
+            req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
+            soup = BeautifulSoup(req.text, "html.parser")
+
+            approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
+
+            if len(approx_results) != 0:
+                # Case with no exact match. Items are suggestions.
+                items = [
+                    ExtensionResultItem(
+                        icon="images/icon.png",
+                        name=i.text,
+                        description="Sugerencia RAE",
+                        on_enter=HideWindowAction(),
+                    )
+                    for i in approx_results[:max_suggested_items]
+                ]
+            else:
+                items = [
+                    ExtensionResultItem(
+                        icon="images/icon.png",
+                        name="NotImplemented",
+                        description="NotImplemented",
+                        on_enter=HideWindowAction(),
+                    )
+                ]
 
         return RenderResultListAction(items)
 
