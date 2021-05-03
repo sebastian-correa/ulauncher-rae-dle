@@ -5,15 +5,22 @@
     "developer_name": "Sebastian Correa",
     "icon": "images/icon.png",
     "options": {
-      "query_debounce": 0.1
+      "query_debounce": 1
     },
     "preferences": [
       {
-        "id": "demo_kw",
+        "id": "kw",
         "type": "keyword",
-        "name": "Demo",
-        "description": "Demo extension",
-        "default_value": "dm"
+        "name": "RAE DLE",
+        "description": "Diccionario de la Lengua Española de la RAE",
+        "default_value": "rae"
+      },
+      {
+        "id": "max_suggested_items",
+        "type": "input",
+        "name": "Max Suggested Items",
+        "description": "Max RAE recommendations to show when the exact query has no match.",
+        "default_value": 10
       }
     ]
 }
