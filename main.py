@@ -113,19 +113,24 @@ class RAE(Extension):
 
     @staticmethod
     def handle_approx_results(
-        approx_results: ResultSet, max_suggested_items: int, extension: Extension
+        soup: BeautifulSoup, max_suggested_items: int, extension: Extension
     ) -> List[ExtensionResultItem]:
         """All elements to be displayed by the extension when an approximate result is found (i.e.: no exact match for given word is found).
 
         Args:
-            approx_results (ResultSet): The soup ResultSet containing all approximated results.
+            soup (BeautifulSoup): Whole page soup.
             max_suggested_items (int): Show, at most, this many of the approximated results in approx_results.
             extension (Extension): The Extension.
 
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
         """
-        # TODO: Take soup and try to handle, throw exception if not possible.
+        approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
+        if len(approx_results) == 0:
+            raise RuntimeError(
+                "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
+            )
+
         items = []
         for i in approx_results[:max_suggested_items]:
             # Done this weird way because i.text would leave the <sup> tag as plaintext.
@@ -151,14 +156,14 @@ class RAE(Extension):
 
     @staticmethod
     def handle_multiple_defs(
-        word: str, soup: BeautifulSoup, max_shown_definitions: int
+        soup: BeautifulSoup, max_shown_definitions: int, word: str
     ) -> List[ExtensionResultItem]:
         """All elements to be displayed by the extension when an exact definition is found.
 
         Args:
-            word (str): Word to which the definitions belong.
             soup (BeautifulSoup): Whole page soup.
             max_shown_definitions (int): Show, at most, this many of the definitions in soup.
+            word (str): Word to which the definitions belong.
 
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
@@ -166,6 +171,10 @@ class RAE(Extension):
         items = []
 
         definitions = soup.find_all("p", {"class": "j"})
+        if len(definitions) == 0:
+            raise RuntimeError(
+                "The provided soup has no <p> tags with 'class'=='j'"
+            )  # ? Should I return an empty ExtensionResultItem() ?
 
         for definition in definitions[:max_shown_definitions]:
             abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
@@ -230,15 +239,12 @@ class KeywordQueryEventListener(EventListener):
             req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
             soup = BeautifulSoup(req.text, "html.parser")
 
-            approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
-            if len(approx_results) != 0:
+            try:
                 # Case with no exact match. Items are suggestions.
-                items = RAE.handle_approx_results(
-                    approx_results, max_suggested_items, extension
-                )
-            else:
+                items = RAE.handle_approx_results(soup, max_suggested_items, extension)
+            except RuntimeError:
                 # Case with exact match.
-                items = RAE.handle_multiple_defs(word, soup, max_shown_definitions)
+                items = RAE.handle_multiple_defs(soup, max_shown_definitions, word)
         return RenderResultListAction(items)
 
 
