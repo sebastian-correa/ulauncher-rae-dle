@@ -127,47 +127,56 @@ class RAE(Extension):
         # approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
         # Example result:
         #     <div class="n1"><a data-acc="LISTA APROX" data-cat="FETCH" data-eti="ad" href="/ad" title="Ir a la entrada">ad</a> (ad)</div>
-        approx_results = (
-            soup.find("div", {"id": "resultados"})
-            .find("article")
-            .find_all("div", {"class": "n1"})
-        )
-        print(approx_results)
-        if len(approx_results) == 0:
-            raise RuntimeError(
-                "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
-            )
+        article = soup.find("div", {"id": "resultados"}).find("article")
 
-        seen = set()
-        items = []
-        for i in approx_results[:max_suggested_items]:
-            # Done this weird way because i.text would leave the <sup> tag as plaintext.
-            # The structure of these <a> tags is, for example:
-            #     <a data-acc="LISTA APROX" data-cat="FETCH" data-eti="saber" href="/saber" title="Ir a la entrada">saber<sup>1</sup></a>
-            # So children is always [word_of_interest, sup tag] or just [word_of_interest].
-            # Of note, the children is a NavigatableString which ulauncher doesn't like.
-            a, infinitive = i.children
-            display_name = str(next(a.children))
-
-            # Guarantee list of approx suggestions shows unique results.
-            # On the web, the results are duplicated cause they link to different sections of the webpage, but the webpage is the same.
-            # Ergo, it doesn't add information to show the entries more than once.
-            if display_name in seen:
-                continue
-            else:
-                seen.add(display_name)
-
-            # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
-            new_query = f"{extension.preferences['kw']} {display_name}"
-
-            items.append(
+        if article is None:
+            # Case where there is no match and no suggestion.
+            items = [
                 ExtensionResultItem(
                     icon="images/icon.png",
-                    name=f"{display_name} ꞏ {infinitive.strip()}",
-                    description="Sugerencia RAE",
-                    on_enter=SetUserQueryAction(new_query),
+                    name=f"Sin palabras",
+                    description="La RAE no tiene ni sugerencias para hacer. La dejaste SP.",
+                    on_enter=HideWindowAction(),
                 )
-            )
+            ]
+        else:
+            approx_results = article.find_all("div", {"class": "n1"})
+
+            if len(approx_results) == 0:
+                raise RuntimeError(
+                    "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
+                )
+
+            seen = set()
+            items = []
+            for i in approx_results[:max_suggested_items]:
+                # Done this weird way because i.text would leave the <sup> tag as plaintext.
+                # The structure of these <a> tags is, for example:
+                #     <a data-acc="LISTA APROX" data-cat="FETCH" data-eti="saber" href="/saber" title="Ir a la entrada">saber<sup>1</sup></a>
+                # So children is always [word_of_interest, sup tag] or just [word_of_interest].
+                # Of note, the children is a NavigatableString which ulauncher doesn't like.
+                a, infinitive = i.children
+                display_name = str(next(a.children))
+
+                # Guarantee list of approx suggestions shows unique results.
+                # On the web, the results are duplicated cause they link to different sections of the webpage, but the webpage is the same.
+                # Ergo, it doesn't add information to show the entries more than once.
+                if display_name in seen:
+                    continue
+                else:
+                    seen.add(display_name)
+
+                # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
+                new_query = f"{extension.preferences['kw']} {display_name}"
+
+                items.append(
+                    ExtensionResultItem(
+                        icon="images/icon.png",
+                        name=f"{display_name} ꞏ {infinitive.strip()}",
+                        description="Sugerencia RAE",
+                        on_enter=SetUserQueryAction(new_query),
+                    )
+                )
         return items
 
     @staticmethod
@@ -238,8 +247,6 @@ class KeywordQueryEventListener(EventListener):
         Returns:
             RenderResultListAction: Results ready to be displayed by ulauncher.
         """
-        items = []
-
         max_suggested_items = int(extension.preferences["max_suggested_items"])
         max_shown_definitions = int(extension.preferences["max_shown_definitions"])
 
@@ -250,16 +257,19 @@ class KeywordQueryEventListener(EventListener):
         logger.info(f"word={word}")
 
         if word is None:
+            print("empty")
             items = RAE.handle_empty_word()
         else:
             req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
             soup = BeautifulSoup(req.text, "html.parser")
 
             try:
+                print("approx try")
                 # Case with no exact match. Items are suggestions.
                 items = RAE.handle_approx_results(soup, max_suggested_items, extension)
                 # TODO: Handle case with no dfinition at all
             except RuntimeError:
+                print("aca")
                 # Case with exact match.
                 items = RAE.handle_multiple_defs(soup, max_shown_definitions, word)
         return RenderResultListAction(items)
