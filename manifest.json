@@ -19,7 +19,7 @@
         "id": "max_suggested_items",
         "type": "input",
         "name": "Max Suggested Items",
-        "description": "Max RAE recommendations to show when the exact query has no match.",
+        "description": "Max RAE recommendations to show when the exact query has no match",
         "default_value": 10
       }
     ]
