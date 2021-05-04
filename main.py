@@ -23,16 +23,17 @@ logger = logging.getLogger(__name__)
 # TODO: Enter goes to the webapge of defined word.
 # TODO: Enter updates the search term to the one selected (when approx result).
 
+
 def chunkize_sentence(sentence: str, max_characters_per_chunk: int) -> List[str]:
-    words = sentence.split(' ')
+    words = sentence.split(" ")
     lines = []
 
     word_idx, anchor = 1, 0
     while anchor <= len(words):
-        partial = ' '.join(words[anchor:anchor+word_idx])
-        
+        partial = " ".join(words[anchor : anchor + word_idx])
+
         if len(partial) > max_characters_per_chunk:
-            lines.append(' '. join(words[anchor:anchor + word_idx - 1]))
+            lines.append(" ".join(words[anchor : anchor + word_idx - 1]))
             anchor += word_idx - 1
             word_idx = 1
             continue
@@ -42,7 +43,7 @@ def chunkize_sentence(sentence: str, max_characters_per_chunk: int) -> List[str]
             break
         word_idx += 1
     return lines
-        
+
 
 class RAE(Extension):
     def __init__(self):
@@ -50,12 +51,24 @@ class RAE(Extension):
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
 
     @staticmethod
-    def handle_multiple_defs(word: str, soup: BeautifulSoup) -> List[ExtensionResultItem]:
+    def handle_empty_word() -> List[ExtensionResultItem]:
+        return [
+            ExtensionResultItem(
+                icon="images/icon.png",
+                name="Palabra vacía",
+                description="Ingrese una palabra para buscar en el diccionario.",
+                on_enter=HideWindowAction(),
+            )
+        ]
+
+    @staticmethod
+    def handle_multiple_defs(
+        word: str, soup: BeautifulSoup
+    ) -> List[ExtensionResultItem]:
         items = []
 
         resultados = soup.find("div", {"id": "resultados"})
         definitions = resultados.find_all("p", {"class": "j"})
-
 
         for definition in definitions:
             abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
@@ -70,12 +83,12 @@ class RAE(Extension):
                 # words = ' '.join(mark.text for mark in definition.find_all('mark'))
             words = words.strip()
             chunks = chunkize_sentence(words, CHARACTERS_PER_LINE)
-            definition_in_lines = '\n'.join(chunks)
+            definition_in_lines = "\n".join(chunks)
 
             items.append(
                 ExtensionResultItem(
                     icon="images/icon.png",
-                    name=f'{word} [{abbrs}]',
+                    name=f"{word} [{abbrs}]",
                     description=definition_in_lines,
                     on_enter=HideWindowAction(),
                 )
@@ -94,14 +107,7 @@ class KeywordQueryEventListener(EventListener):
         logger.info(f"word={word}")
 
         if word is None:
-            items = [
-                ExtensionResultItem(
-                    icon="images/icon.png",
-                    name="Palabra vacía",
-                    description="Ingrese una palabra para buscar en el diccionario.",
-                    on_enter=HideWindowAction(),
-                )
-            ]
+            items = RAE.handle_empty_word()
         else:
             req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
             soup = BeautifulSoup(req.text, "html.parser")
