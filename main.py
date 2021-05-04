@@ -8,13 +8,11 @@ from bs4 import BeautifulSoup
 from bs4.element import NavigableString, ResultSet
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.client.Extension import Extension
-
-from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
-from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
+from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 from ulauncher.api.shared.action.OpenUrlAction import OpenUrlAction
+from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
 from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
-
 from ulauncher.api.shared.event import (
     KeywordQueryEvent,
     PreferencesEvent,
@@ -127,17 +125,29 @@ class RAE(Extension):
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
         """
-        return [
-            ExtensionResultItem(
-                icon="images/icon.png",
-                name=i.text,  # TODO: This leaves the superscript characters.
-                description="Sugerencia RAE",
-                on_enter=SetUserQueryAction(
-                    f"{extension.preferences['kw']} {i.text}"
-                ),  # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
+        # TODO: Take soup and try to handle, throw exception if not possible.
+        items = []
+        for i in approx_results[:max_suggested_items]:
+            # Done this weird way because i.text would leave the <sup> tag as plaintext.
+            # The structure of these <a> tags is, for example:
+            #     <a data-acc="LISTA APROX" data-cat="FETCH" data-eti="saber" href="/saber" title="Ir a la entrada">saber<sup>1</sup></a>
+            # So children is always [word_of_interest, sup tag] or just [word_of_interest].
+            # Of note, the children is a NavigatableString which ulauncher doesn't like.
+            display_name = str(next(i.children))
+            print(display_name)
+            # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
+            new_query = f"{extension.preferences['kw']} {display_name}"
+            print(new_query)
+
+            items.append(
+                ExtensionResultItem(
+                    icon="images/icon.png",
+                    name=display_name,
+                    description="Sugerencia RAE",
+                    on_enter=SetUserQueryAction(new_query),
+                )
             )
-            for i in approx_results[:max_suggested_items]
-        ]
+        return items
 
     @staticmethod
     def handle_multiple_defs(
@@ -207,7 +217,6 @@ class KeywordQueryEventListener(EventListener):
 
         max_suggested_items = int(extension.preferences["max_suggested_items"])
         max_shown_definitions = int(extension.preferences["max_shown_definitions"])
-        print(f"{max_suggested_items=}, {max_shown_definitions=}")
 
         logger.info(f"max_suggested_items={max_suggested_items}")
         logger.info(f"max_shown_definitions={max_shown_definitions}")
@@ -230,7 +239,6 @@ class KeywordQueryEventListener(EventListener):
             else:
                 # Case with exact match.
                 items = RAE.handle_multiple_defs(word, soup, max_shown_definitions)
-
         return RenderResultListAction(items)
 
 
