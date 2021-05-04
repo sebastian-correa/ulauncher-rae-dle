@@ -12,6 +12,7 @@ from ulauncher.api.client.Extension import Extension
 from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
+from ulauncher.api.shared.action.OpenUrlAction import OpenUrlAction
 
 from ulauncher.api.shared.event import (
     KeywordQueryEvent,
@@ -153,8 +154,7 @@ class RAE(Extension):
         """
         items = []
 
-        resultados = soup.find("div", {"id": "resultados"})
-        definitions = resultados.find_all("p", {"class": "j"})
+        definitions = soup.find_all("p", {"class": "j"})
 
         for definition in definitions[:max_shown_definitions]:
             abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
@@ -171,12 +171,19 @@ class RAE(Extension):
             chunks = chunkize_sentence(words, CHARACTERS_PER_LINE)
             definition_in_lines = "\n".join(chunks)
 
+            code = definition["id"]
+
             items.append(
                 ExtensionResultItem(
                     icon="images/icon.png",
                     name=f"{word} [{abbrs}]",
                     description=definition_in_lines,
-                    on_enter=CopyToClipboardAction(words),
+                    on_enter=CopyToClipboardAction(
+                        words
+                    ),  # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/CopyToClipboardAction.py
+                    on_alt_enter=OpenUrlAction(
+                        f"{BASE_URL}/{word}#{code}"
+                    ),  # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/OpenUrlAction.py
                 )
             )
         return items
