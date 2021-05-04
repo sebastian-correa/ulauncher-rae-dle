@@ -111,6 +111,18 @@ class RAE(Extension):
         ]
 
     @staticmethod
+    def handle_no_matches(word: str) -> List[ExtensionResultItem]:
+        return [
+            ExtensionResultItem(
+                icon="images/icon.png",
+                name=f"Sin palabras",
+                description="La RAE no tiene ni sugerencias para hacer. La dejaste SP.\nPresione ENTER para cerrar.\nPresione Alt+Enter para ir a la RAE.",
+                on_enter=HideWindowAction(),
+                on_alt_enter=OpenUrlAction(f"{BASE_URL}/{word}"),
+            )
+        ]
+
+    @staticmethod
     def handle_approx_results(
         soup: BeautifulSoup, max_suggested_items: int, extension: Extension
     ) -> List[ExtensionResultItem]:
@@ -131,14 +143,7 @@ class RAE(Extension):
 
         if article is None:
             # Case where there is no match and no suggestion.
-            items = [
-                ExtensionResultItem(
-                    icon="images/icon.png",
-                    name=f"Sin palabras",
-                    description="La RAE no tiene ni sugerencias para hacer. La dejaste SP.",
-                    on_enter=HideWindowAction(),
-                )
-            ]
+            items = RAE.handle_no_matches()
         else:
             approx_results = article.find_all("div", {"class": "n1"})
 
@@ -197,9 +202,9 @@ class RAE(Extension):
 
         definitions = soup.find_all("p", {"class": "j"})
         if len(definitions) == 0:
-            raise RuntimeError(
-                "The provided soup has no <p> tags with 'class'=='j'"
-            )  # ? Should I return an empty ExtensionResultItem() ?
+            items = RAE.handle_no_matches(
+                word
+            )  # ! Catchall. Beware of this line, as it tries to handle all unforseen cases and give the user the ability to open the website.
 
         for definition in definitions[:max_shown_definitions]:
             abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
@@ -257,19 +262,15 @@ class KeywordQueryEventListener(EventListener):
         logger.info(f"word={word}")
 
         if word is None:
-            print("empty")
             items = RAE.handle_empty_word()
         else:
             req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
             soup = BeautifulSoup(req.text, "html.parser")
 
             try:
-                print("approx try")
                 # Case with no exact match. Items are suggestions.
                 items = RAE.handle_approx_results(soup, max_suggested_items, extension)
-                # TODO: Handle case with no dfinition at all
             except RuntimeError:
-                print("aca")
                 # Case with exact match.
                 items = RAE.handle_multiple_defs(soup, max_shown_definitions, word)
         return RenderResultListAction(items)
