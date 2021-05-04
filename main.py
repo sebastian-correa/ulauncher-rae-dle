@@ -134,6 +134,7 @@ class RAE(Extension):
                 "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
             )
 
+        seen = set()
         items = []
         for i in approx_results[:max_suggested_items]:
             # Done this weird way because i.text would leave the <sup> tag as plaintext.
@@ -143,6 +144,14 @@ class RAE(Extension):
             # Of note, the children is a NavigatableString which ulauncher doesn't like.
             a, infinitive = i.children
             display_name = str(next(a.children))
+
+            # Guarantee list of approx suggestions shows unique results.
+            # On the web, the results are duplicated cause they link to different sections of the webpage, but the webpage is the same.
+            # Ergo, it doesn't add information to show the entries more than once.
+            if display_name in seen:
+                continue
+            else:
+                seen.add(display_name)
 
             # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
             new_query = f"{extension.preferences['kw']} {display_name}"
