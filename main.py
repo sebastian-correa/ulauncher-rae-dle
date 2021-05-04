@@ -125,7 +125,10 @@ class RAE(Extension):
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
         """
-        approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
+        # approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
+        # Example result:
+        #     <div class="n1"><a data-acc="LISTA APROX" data-cat="FETCH" data-eti="ad" href="/ad" title="Ir a la entrada">ad</a> (ad)</div>
+        approx_results = soup.find_all("div", {"class": "n1"})
         if len(approx_results) == 0:
             raise RuntimeError(
                 "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
@@ -138,16 +141,16 @@ class RAE(Extension):
             #     <a data-acc="LISTA APROX" data-cat="FETCH" data-eti="saber" href="/saber" title="Ir a la entrada">saber<sup>1</sup></a>
             # So children is always [word_of_interest, sup tag] or just [word_of_interest].
             # Of note, the children is a NavigatableString which ulauncher doesn't like.
-            display_name = str(next(i.children))
-            print(display_name)
+            a, infinitive = i.children
+            display_name = str(next(a.children))
+
             # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
             new_query = f"{extension.preferences['kw']} {display_name}"
-            print(new_query)
 
             items.append(
                 ExtensionResultItem(
                     icon="images/icon.png",
-                    name=display_name,
+                    name=f"{display_name} ꞏ {infinitive.strip()}",
                     description="Sugerencia RAE",
                     on_enter=SetUserQueryAction(new_query),
                 )
