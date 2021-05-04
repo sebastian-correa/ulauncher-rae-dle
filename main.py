@@ -44,7 +44,6 @@ DEFAULT_PREFERENCES = {
 
 logger = logging.getLogger(__name__)
 
-# TODO: Enter updates the search term to the one selected (when approx result).
 # TODO: Check "saber"
 
 
@@ -128,7 +127,12 @@ class RAE(Extension):
         # approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
         # Example result:
         #     <div class="n1"><a data-acc="LISTA APROX" data-cat="FETCH" data-eti="ad" href="/ad" title="Ir a la entrada">ad</a> (ad)</div>
-        approx_results = soup.find_all("div", {"class": "n1"})
+        approx_results = (
+            soup.find("div", {"id": "resultados"})
+            .find("article")
+            .find_all("div", {"class": "n1"})
+        )
+        print(approx_results)
         if len(approx_results) == 0:
             raise RuntimeError(
                 "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
@@ -254,6 +258,7 @@ class KeywordQueryEventListener(EventListener):
             try:
                 # Case with no exact match. Items are suggestions.
                 items = RAE.handle_approx_results(soup, max_suggested_items, extension)
+                # TODO: Handle case with no dfinition at all
             except RuntimeError:
                 # Case with exact match.
                 items = RAE.handle_multiple_defs(soup, max_shown_definitions, word)
