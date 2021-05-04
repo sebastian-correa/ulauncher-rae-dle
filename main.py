@@ -63,14 +63,14 @@ class RAE(Extension):
 
     @staticmethod
     def handle_multiple_defs(
-        word: str, soup: BeautifulSoup
+        word: str, soup: BeautifulSoup, max_shown_definitions: int
     ) -> List[ExtensionResultItem]:
         items = []
 
         resultados = soup.find("div", {"id": "resultados"})
         definitions = resultados.find_all("p", {"class": "j"})
 
-        for definition in definitions:
+        for definition in definitions[:max_shown_definitions]:
             abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
 
             words = ""
@@ -101,7 +101,10 @@ class KeywordQueryEventListener(EventListener):
         items = []
 
         max_suggested_items = int(extension.preferences["max_suggested_items"])
+        max_shown_definitions = int(extension.preferences["max_shown_definitions"])
+
         logger.info(f"max_suggested_items={max_suggested_items}")
+        logger.info(f"max_shown_definitions={max_shown_definitions}")
 
         word = event.get_argument()
         logger.info(f"word={word}")
@@ -127,7 +130,7 @@ class KeywordQueryEventListener(EventListener):
                 # TODO: On ENTER, replace word in ulauncher with the one selected.
             else:
                 # Case with exact match.
-                items = RAE.handle_multiple_defs(word, soup)
+                items = RAE.handle_multiple_defs(word, soup, max_shown_definitions)
 
         return RenderResultListAction(items)
 

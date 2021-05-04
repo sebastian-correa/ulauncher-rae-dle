@@ -21,6 +21,13 @@
         "name": "Max Suggested Items",
         "description": "Max RAE recommendations to show when the exact query has no match",
         "default_value": 10
+      },
+      {
+        "id": "max_shown_definitions",
+        "type": "input",
+        "name": "Max Shown Definitions",
+        "description": "Max definitions to show when there is a match",
+        "default_value": 10
       }
     ]
 }
