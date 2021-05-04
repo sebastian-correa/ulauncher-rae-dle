@@ -13,6 +13,7 @@ from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
 from ulauncher.api.shared.action.OpenUrlAction import OpenUrlAction
+from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
 
 from ulauncher.api.shared.event import (
     KeywordQueryEvent,
@@ -45,10 +46,8 @@ DEFAULT_PREFERENCES = {
 
 logger = logging.getLogger(__name__)
 
-# TODO: Ctrl+C copies definition.
-# TODO: Enter copies selected definition.
-# TODO: Alt+Enter goes to the webapge of defined word.
 # TODO: Enter updates the search term to the one selected (when approx result).
+# TODO: Check "saber"
 
 
 def chunkize_sentence(sentence: str, max_characters_per_chunk: int) -> List[str]:
@@ -116,13 +115,14 @@ class RAE(Extension):
 
     @staticmethod
     def handle_approx_results(
-        approx_results: ResultSet, max_suggested_items: int
+        approx_results: ResultSet, max_suggested_items: int, extension: Extension
     ) -> List[ExtensionResultItem]:
         """All elements to be displayed by the extension when an approximate result is found (i.e.: no exact match for given word is found).
 
         Args:
             approx_results (ResultSet): The soup ResultSet containing all approximated results.
             max_suggested_items (int): Show, at most, this many of the approximated results in approx_results.
+            extension (Extension): The Extension.
 
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
@@ -132,11 +132,12 @@ class RAE(Extension):
                 icon="images/icon.png",
                 name=i.text,  # TODO: This leaves the superscript characters.
                 description="Sugerencia RAE",
-                on_enter=HideWindowAction(),
+                on_enter=SetUserQueryAction(
+                    f"{extension.preferences['kw']} {i.text}"
+                ),  # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
             )
             for i in approx_results[:max_suggested_items]
         ]
-        # TODO: On ENTER, replace word in ulauncher with the one selected.
 
     @staticmethod
     def handle_multiple_defs(
@@ -223,7 +224,9 @@ class KeywordQueryEventListener(EventListener):
             approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
             if len(approx_results) != 0:
                 # Case with no exact match. Items are suggestions.
-                items = RAE.handle_approx_results(approx_results, max_suggested_items)
+                items = RAE.handle_approx_results(
+                    approx_results, max_suggested_items, extension
+                )
             else:
                 # Case with exact match.
                 items = RAE.handle_multiple_defs(word, soup, max_shown_definitions)
