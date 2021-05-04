@@ -8,8 +8,11 @@ from bs4 import BeautifulSoup
 from bs4.element import NavigableString, ResultSet
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.client.Extension import Extension
+
 from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
+from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
+
 from ulauncher.api.shared.event import (
     KeywordQueryEvent,
     PreferencesEvent,
@@ -42,7 +45,8 @@ DEFAULT_PREFERENCES = {
 logger = logging.getLogger(__name__)
 
 # TODO: Ctrl+C copies definition.
-# TODO: Enter goes to the webapge of defined word.
+# TODO: Enter copies selected definition.
+# TODO: Alt+Enter goes to the webapge of defined word.
 # TODO: Enter updates the search term to the one selected (when approx result).
 
 
@@ -172,7 +176,7 @@ class RAE(Extension):
                     icon="images/icon.png",
                     name=f"{word} [{abbrs}]",
                     description=definition_in_lines,
-                    on_enter=HideWindowAction(),
+                    on_enter=CopyToClipboardAction(words),
                 )
             )
         return items
