@@ -5,7 +5,7 @@ from typing import List
 
 import requests
 from bs4 import BeautifulSoup
-from bs4.element import NavigableString
+from bs4.element import NavigableString, ResultSet
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
@@ -91,6 +91,19 @@ class RAE(Extension):
         ]
 
     @staticmethod
+    def handle_approx_results(approx_results: ResultSet, max_suggested_items: int) -> List[ExtensionResultItem]:
+        return [
+                    ExtensionResultItem(
+                        icon="images/icon.png",
+                        name=i.text,  # TODO: This leaves the superscript characters.
+                        description="Sugerencia RAE",
+                        on_enter=HideWindowAction(),
+                    )
+                    for i in approx_results[:max_suggested_items]
+                ]
+                # TODO: On ENTER, replace word in ulauncher with the one selected.
+
+    @staticmethod
     def handle_multiple_defs(
         word: str, soup: BeautifulSoup, max_shown_definitions: int
     ) -> List[ExtensionResultItem]:
@@ -148,16 +161,7 @@ class KeywordQueryEventListener(EventListener):
             approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
             if len(approx_results) != 0:
                 # Case with no exact match. Items are suggestions.
-                items = [
-                    ExtensionResultItem(
-                        icon="images/icon.png",
-                        name=i.text,  # TODO: This leaves the superscript characters.
-                        description="Sugerencia RAE",
-                        on_enter=HideWindowAction(),
-                    )
-                    for i in approx_results[:max_suggested_items]
-                ]
-                # TODO: On ENTER, replace word in ulauncher with the one selected.
+                items = RAE.handle_approx_results(approx_results, max_suggested_items)
             else:
                 # Case with exact match.
                 items = RAE.handle_multiple_defs(word, soup, max_shown_definitions)
