@@ -1,33 +1,49 @@
 {
-    "required_api_version": "^2.0.0",
-    "name": "Diccionario de la Lengua Española de la RAE",
-    "description": "Busca definiciones de términos según la Real Academia Española",
-    "developer_name": "Sebastian Correa",
-    "icon": "images/icon.png",
-    "options": {
-      "query_debounce": 1
+  "required_api_version": "^2.0.0",
+  "name": "Diccionario de la Lengua Española de la RAE",
+  "description": "Busca definiciones de términos según la Real Academia Española",
+  "developer_name": "Sebastian Correa",
+  "icon": "images/icon.png",
+  "options": {
+    "query_debounce": 1
+  },
+  "preferences": [
+    {
+      "id": "kw",
+      "type": "keyword",
+      "name": "RAE DLE",
+      "description": "Diccionario de la Lengua Española de la RAE (default: rae)",
+      "default_value": "rae"
     },
-    "preferences": [
-      {
-        "id": "kw",
-        "type": "keyword",
-        "name": "RAE DLE",
-        "description": "Diccionario de la Lengua Española de la RAE",
-        "default_value": "rae"
-      },
-      {
-        "id": "max_suggested_items",
-        "type": "input",
-        "name": "Max Suggested Items",
-        "description": "Max RAE recommendations to show when the exact query has no match",
-        "default_value": 10
-      },
-      {
-        "id": "max_shown_definitions",
-        "type": "input",
-        "name": "Max Shown Definitions",
-        "description": "Max definitions to show when there is a match",
-        "default_value": 10
-      }
-    ]
+    {
+      "id": "max_suggested_items",
+      "type": "input",
+      "name": "Max Suggested Items",
+      "description": "Max RAE recommendations to show when the exact query has no match (default: 10)",
+      "default_value": 10
+    },
+    {
+      "id": "max_shown_definitions",
+      "type": "input",
+      "name": "Max Shown Definitions",
+      "description": "Max definitions to show when there is a match (default: 10)",
+      "default_value": 10
+    },
+    {
+      "id": "reset_to_default",
+      "type": "select",
+      "name": "Reset preferences to default",
+      "default_value": "-",
+      "options": [
+        {
+          "value": "-",
+          "text": "-"
+        },
+        {
+          "value": "Reset",
+          "text": "Reset"
+        }
+      ]
+    }
+  ]
 }
