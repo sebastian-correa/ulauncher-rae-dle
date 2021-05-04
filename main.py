@@ -9,11 +9,12 @@ from bs4.element import NavigableString, ResultSet
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
-from ulauncher.api.shared.action.RenderResultListAction import \
-    RenderResultListAction
-from ulauncher.api.shared.event import (KeywordQueryEvent,
-                                        PreferencesEvent,
-                                        PreferencesUpdateEvent)
+from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
+from ulauncher.api.shared.event import (
+    KeywordQueryEvent,
+    PreferencesEvent,
+    PreferencesUpdateEvent,
+)
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 
 BASE_URL = "https://dle.rae.es"
@@ -46,6 +47,19 @@ logger = logging.getLogger(__name__)
 
 
 def chunkize_sentence(sentence: str, max_characters_per_chunk: int) -> List[str]:
+    """Splits a given sentence into chunks of at most max_characters_per_chunk, counting spaces.
+
+    The method guarantees that each element of the output is an intelligible sentence with whole words.
+
+    This is not the same as splitting into max_characters_per_chunk, because words could end up truncated.
+
+    Args:
+        sentence (str): Sentence to be split.
+        max_characters_per_chunk (int): Maximum number of characters allower per chunk, spaces included. Chunks could end up being significantly shorter, depending on the length of words.
+
+    Returns:
+        List[str]: List of chunks (i.e: lines) with length at most max_characters_per_chunk.
+    """
     words = sentence.split(" ")
     lines = []
 
@@ -81,6 +95,11 @@ class RAE(Extension):
 
     @staticmethod
     def handle_empty_word() -> List[ExtensionResultItem]:
+        """Returns the elements to display when an empty word is given to the extension.
+
+        Returns:
+            List[ExtensionResultItem]: All elements to be shown by the extension.
+        """
         return [
             ExtensionResultItem(
                 icon="images/icon.png",
@@ -91,22 +110,43 @@ class RAE(Extension):
         ]
 
     @staticmethod
-    def handle_approx_results(approx_results: ResultSet, max_suggested_items: int) -> List[ExtensionResultItem]:
+    def handle_approx_results(
+        approx_results: ResultSet, max_suggested_items: int
+    ) -> List[ExtensionResultItem]:
+        """All elements to be displayed by the extension when an approximate result is found (i.e.: no exact match for given word is found).
+
+        Args:
+            approx_results (ResultSet): The soup ResultSet containing all approximated results.
+            max_suggested_items (int): Show, at most, this many of the approximated results in approx_results.
+
+        Returns:
+            List[ExtensionResultItem]: All elements to be shown by the extension.
+        """
         return [
-                    ExtensionResultItem(
-                        icon="images/icon.png",
-                        name=i.text,  # TODO: This leaves the superscript characters.
-                        description="Sugerencia RAE",
-                        on_enter=HideWindowAction(),
-                    )
-                    for i in approx_results[:max_suggested_items]
-                ]
-                # TODO: On ENTER, replace word in ulauncher with the one selected.
+            ExtensionResultItem(
+                icon="images/icon.png",
+                name=i.text,  # TODO: This leaves the superscript characters.
+                description="Sugerencia RAE",
+                on_enter=HideWindowAction(),
+            )
+            for i in approx_results[:max_suggested_items]
+        ]
+        # TODO: On ENTER, replace word in ulauncher with the one selected.
 
     @staticmethod
     def handle_multiple_defs(
         word: str, soup: BeautifulSoup, max_shown_definitions: int
     ) -> List[ExtensionResultItem]:
+        """All elements to be displayed by the extension when an exact definition is found.
+
+        Args:
+            word (str): Word to which the definitions belong.
+            soup (BeautifulSoup): Whole page soup.
+            max_shown_definitions (int): Show, at most, this many of the definitions in soup.
+
+        Returns:
+            List[ExtensionResultItem]: All elements to be shown by the extension.
+        """
         items = []
 
         resultados = soup.find("div", {"id": "resultados"})
@@ -139,7 +179,18 @@ class RAE(Extension):
 
 
 class KeywordQueryEventListener(EventListener):
-    def on_event(self, event: KeywordQueryEvent, extension: Extension) -> RenderResultListAction:
+    def on_event(
+        self, event: KeywordQueryEvent, extension: Extension
+    ) -> RenderResultListAction:
+        """Handle the user calling the extension via ulauncher.
+
+        Args:
+            event (KeywordQueryEvent): The KeywordQueryEvent generated by the user (docs.ulauncher.io/en/latest/extensions/events.html?highlight=KeywordQueryEvent).
+            extension (Extension): The Extension.
+
+        Returns:
+            RenderResultListAction: Results ready to be displayed by ulauncher.
+        """
         items = []
 
         max_suggested_items = int(extension.preferences["max_suggested_items"])
@@ -171,8 +222,11 @@ class KeywordQueryEventListener(EventListener):
 
 class PreferencesEventListener(EventListener):
     def on_event(self, event: PreferencesEvent, extension: Extension):
-        """
-        Set this session's preferences to those of the last session, except for the reset toggle, which is reset to the default.
+        """Set this session's preferences to those of the last session, except for the reset toggle, which is reset to the default.
+
+        Args:
+            event (PreferencesEvent): The PreferencesEvent triggered once when the application starts (docs.ulauncher.io/en/latest/extensions/events.html?highlight=PreferencesEvent#preferencesevent).
+            extension (Extension): The Extension.
         """
         extension.preferences.update(event.preferences)
         extension.preferences["reset_to_default"] = "-"
@@ -181,6 +235,12 @@ class PreferencesEventListener(EventListener):
 
 class PreferencesUpdateListener(EventListener):
     def on_event(self, event: PreferencesUpdateEvent, extension: Extension):
+        """Update extension preferences when the user saves new ones from the UI.
+
+        Args:
+            event (PreferencesUpdateEvent): The PreferencesUpdateEvent triggered when the user clicks SAVE in the Extension preference's page (docs.ulauncher.io/en/latest/extensions/events.html?highlight=PreferencesUpdateEvent#preferencesupdateevent).
+            extension (Extension): The extension.
+        """
         if event.id in NUMERIC_PREFERENCES:
             if float(event.new_value).is_integer():
                 # Don't do the typical try/catch cause 4.2 (not "4.2") would be truncated to 4 and silently change the value to 4, instead of throwing an error.
