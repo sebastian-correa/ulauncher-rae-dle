@@ -2,6 +2,7 @@ import json
 import logging
 from pathlib import Path
 from typing import List
+from enum import Enum, unique, auto
 
 import requests
 from bs4 import BeautifulSoup
@@ -41,6 +42,14 @@ with p.open("r") as f:
 DEFAULT_PREFERENCES = {
     x["id"]: x["default_value"] for x in DEFAULT_MANIFEST["preferences"]
 }
+
+
+@unique
+class Case(Enum):
+    NO_MATCH = auto()
+    APPROX_MATCH = auto()
+    EXACT_MATCH = auto()
+
 
 logger = logging.getLogger(__name__)
 
@@ -111,27 +120,34 @@ class RAE(Extension):
         ]
 
     @staticmethod
+    def detect_req_case(soup: BeautifulSoup) -> Case:
+        if soup.find("p", {"class": "j"}) is not None:
+            return Case.EXACT_MATCH
+        elif soup.find("div", {"class": "item-list"}) is not None:
+            return Case.APPROX_MATCH
+        else:
+            return Case.NO_MATCH
+
+    @staticmethod
     def handle_no_matches(word: str) -> List[ExtensionResultItem]:
         return [
             ExtensionResultItem(
                 icon="images/icon.png",
-                name=f"Sin palabras",
+                name="Sin palabras",
                 description="La RAE no tiene ni sugerencias para hacer. La dejaste SP.\nPresione ENTER para cerrar.\nPresione Alt+Enter para ir a la RAE.",
                 on_enter=HideWindowAction(),
                 on_alt_enter=OpenUrlAction(f"{BASE_URL}/{word}"),
             )
         ]
 
-    @staticmethod
     def handle_approx_results(
-        soup: BeautifulSoup, max_suggested_items: int, extension: Extension
+        self, soup: BeautifulSoup, word: str
     ) -> List[ExtensionResultItem]:
         """All elements to be displayed by the extension when an approximate result is found (i.e.: no exact match for given word is found).
 
         Args:
             soup (BeautifulSoup): Whole page soup.
-            max_suggested_items (int): Show, at most, this many of the approximated results in approx_results.
-            extension (Extension): The Extension.
+            word (str): Searched term. This is what is sent to RAE for consult.
 
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
@@ -139,76 +155,70 @@ class RAE(Extension):
         # approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
         # Example result:
         #     <div class="n1"><a data-acc="LISTA APROX" data-cat="FETCH" data-eti="ad" href="/ad" title="Ir a la entrada">ad</a> (ad)</div>
-        article = soup.find("div", {"id": "resultados"}).find("article")
+        max_suggested_items = int(self.preferences["max_suggested_items"])
+        logger.info(f"max_suggested_items={max_suggested_items}")
 
-        if article is None:
-            # Case where there is no match and no suggestion.
-            items = RAE.handle_no_matches()
-        else:
-            approx_results = article.find_all("div", {"class": "n1"})
+        approx_results = soup.find_all("div", {"class": "n1"})
 
-            if len(approx_results) == 0:
-                raise RuntimeError(
-                    "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
+        if len(approx_results) == 0:
+            raise RuntimeError(
+                "Attempted to handle the approx result case, but the soup doesn't have any <a> tags with 'data-acc'=='LISTA APROX'."
+            )
+
+        seen = set()
+        items = []
+        for i in approx_results[:max_suggested_items]:
+            # Done this weird way because i.text would leave the <sup> tag as plaintext.
+            # The structure of these <a> tags is, for example:
+            #     <a data-acc="LISTA APROX" data-cat="FETCH" data-eti="saber" href="/saber" title="Ir a la entrada">saber<sup>1</sup></a>
+            # So children is always [word_of_interest, sup tag] or just [word_of_interest].
+            # Of note, the children is a NavigatableString which ulauncher doesn't like.
+            a, infinitive = i.children
+            display_name = str(next(a.children))
+
+            # Guarantee list of approx suggestions shows unique results.
+            # On the web, the results are duplicated cause they link to different sections of the webpage, but the webpage is the same.
+            # Ergo, it doesn't add information to show the entries more than once.
+            if display_name in seen:
+                continue
+            else:
+                seen.add(display_name)
+
+            # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
+            new_query = f"{self.preferences['kw']} {display_name}"
+
+            items.append(
+                ExtensionResultItem(
+                    icon="images/icon.png",
+                    name=f"{display_name} ꞏ {infinitive.strip()}",
+                    description="Sugerencia RAE",
+                    on_enter=SetUserQueryAction(new_query),
                 )
-
-            seen = set()
-            items = []
-            for i in approx_results[:max_suggested_items]:
-                # Done this weird way because i.text would leave the <sup> tag as plaintext.
-                # The structure of these <a> tags is, for example:
-                #     <a data-acc="LISTA APROX" data-cat="FETCH" data-eti="saber" href="/saber" title="Ir a la entrada">saber<sup>1</sup></a>
-                # So children is always [word_of_interest, sup tag] or just [word_of_interest].
-                # Of note, the children is a NavigatableString which ulauncher doesn't like.
-                a, infinitive = i.children
-                display_name = str(next(a.children))
-
-                # Guarantee list of approx suggestions shows unique results.
-                # On the web, the results are duplicated cause they link to different sections of the webpage, but the webpage is the same.
-                # Ergo, it doesn't add information to show the entries more than once.
-                if display_name in seen:
-                    continue
-                else:
-                    seen.add(display_name)
-
-                # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/SetUserQueryAction.py
-                new_query = f"{extension.preferences['kw']} {display_name}"
-
-                items.append(
-                    ExtensionResultItem(
-                        icon="images/icon.png",
-                        name=f"{display_name} ꞏ {infinitive.strip()}",
-                        description="Sugerencia RAE",
-                        on_enter=SetUserQueryAction(new_query),
-                    )
-                )
+            )
         return items
 
-    @staticmethod
     def handle_multiple_defs(
-        soup: BeautifulSoup, max_shown_definitions: int, word: str
+        self, soup: BeautifulSoup, word: str
     ) -> List[ExtensionResultItem]:
         """All elements to be displayed by the extension when an exact definition is found.
 
         Args:
             soup (BeautifulSoup): Whole page soup.
-            max_shown_definitions (int): Show, at most, this many of the definitions in soup.
             word (str): Word to which the definitions belong.
 
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
         """
         items = []
+        max_shown_definitions = int(self.preferences["max_shown_definitions"])
+        logger.info(f"max_shown_definitions={max_shown_definitions}")
 
         definitions = soup.find_all("p", {"class": "j"})
-        if len(definitions) == 0:
-            items = RAE.handle_no_matches(
-                word
-            )  # ! Catchall. Beware of this line, as it tries to handle all unforseen cases and give the user the ability to open the website.
 
         for definition in definitions[:max_shown_definitions]:
             abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
 
+            # This is done this weird way cause they put words inside <mark> tags but whitespaces and puntcuations outside of them.
             words = ""
             for child in definition.children:
                 if child.name not in {"span", "abbr"}:
@@ -216,7 +226,6 @@ class RAE(Extension):
                         words += child
                     else:
                         words += child.get_text()
-                # words = ' '.join(mark.text for mark in definition.find_all('mark'))
             words = words.strip()
             chunks = chunkize_sentence(words, CHARACTERS_PER_LINE)
             definition_in_lines = "\n".join(chunks)
@@ -252,11 +261,6 @@ class KeywordQueryEventListener(EventListener):
         Returns:
             RenderResultListAction: Results ready to be displayed by ulauncher.
         """
-        max_suggested_items = int(extension.preferences["max_suggested_items"])
-        max_shown_definitions = int(extension.preferences["max_shown_definitions"])
-
-        logger.info(f"max_suggested_items={max_suggested_items}")
-        logger.info(f"max_shown_definitions={max_shown_definitions}")
 
         word = event.get_argument()
         logger.info(f"word={word}")
@@ -266,13 +270,19 @@ class KeywordQueryEventListener(EventListener):
         else:
             req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
             soup = BeautifulSoup(req.text, "html.parser")
+            case = RAE.detect_req_case(soup)
 
-            try:
-                # Case with no exact match. Items are suggestions.
-                items = RAE.handle_approx_results(soup, max_suggested_items, extension)
-            except RuntimeError:
-                # Case with exact match.
-                items = RAE.handle_multiple_defs(soup, max_shown_definitions, word)
+            if case == Case.NO_MATCH:
+                items = RAE.handle_no_matches(
+                    word
+                )  # ! Bit of a catchall. Beware of this line, as it tries to handle all unforseen cases and give the user the ability to open the website.
+            elif case == Case.APPROX_MATCH:
+                items = extension.handle_approx_results(soup, word)
+            elif case == Case.EXACT_MATCH:
+                items = extension.handle_multiple_defs(soup, word)
+            else:
+                raise RuntimeError(f"Got {case=}, which doesn't belong to class Case.")
+
         return RenderResultListAction(items)
 
 
