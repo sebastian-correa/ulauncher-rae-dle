@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from enum import Enum, unique, auto
 
 import requests
@@ -43,12 +43,27 @@ DEFAULT_PREFERENCES = {
     x["id"]: x["default_value"] for x in DEFAULT_MANIFEST["preferences"]
 }
 
+p = (
+    Path.home()
+    / ".local"
+    / "share"
+    / "ulauncher"
+    / "extensions"
+    / "rae"
+    / "top_words"
+    / "top_1k_spanish_words.json"
+)
+with p.open("r") as f:
+    STORED_DATA = json.load(f)
+
 
 @unique
 class Case(Enum):
     NO_MATCH = auto()
     APPROX_MATCH = auto()
-    EXACT_MATCH = auto()
+    EXACT_REQ_MATCH = auto()
+    EXACT_STORED_MATCH = auto()
+    EMPTY_WORD = auto()
 
 
 logger = logging.getLogger(__name__)
@@ -120,16 +135,68 @@ class RAE(Extension):
         ]
 
     @staticmethod
-    def detect_req_case(soup: BeautifulSoup) -> Case:
+    def need_online_check(word: str) -> bool:
+        """Determine if the given word needs an online check or if we can make do with the offline data.
+
+        Args:
+            word (str): The word to be defined.
+
+        Returns:
+            bool: True if it needs an online check.
+        """
+        if word is None or word in STORED_DATA["words"]:
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def detect_offline_case(word: str) -> Case:
+        """Detects the case of a given word, assuming that it is viable to process it offline.
+
+        Args:
+            word (str): The word to be defined.
+
+        Raises:
+            RuntimeError: If a non empty word that isn't in the database is given.
+
+        Returns:
+            Case: A Case.
+        """
+        print(word)
+        if word is None:
+            return Case.EMPTY_WORD
+        elif word in STORED_DATA["words"]:
+            return Case.EXACT_STORED_MATCH
+        else:
+            raise RuntimeError(f"Non empty, non stored {word=} given.")
+
+    @staticmethod
+    def detect_online_case(soup: BeautifulSoup) -> Case:
+        """Detects the case of the given soup, so that the program can process it accordingly.
+
+        Args:
+            soup (BeautifulSoup): The webpage soup.
+
+        Returns:
+            Case: A Case.
+        """
         if soup.find("p", {"class": "j"}) is not None:
-            return Case.EXACT_MATCH
+            return Case.EXACT_REQ_MATCH
         elif soup.find("div", {"class": "item-list"}) is not None:
             return Case.APPROX_MATCH
         else:
             return Case.NO_MATCH
 
     @staticmethod
-    def handle_no_matches(word: str) -> List[ExtensionResultItem]:
+    def handle_online_no_matches(word: str) -> List[ExtensionResultItem]:
+        """Handles the case where the word has no match online.
+
+        Args:
+            word (str): The word to be defined.
+
+        Returns:
+            List[ExtensionResultItem]: All elements to be shown by the extension. 
+        """
         return [
             ExtensionResultItem(
                 icon="images/icon.png",
@@ -140,14 +207,13 @@ class RAE(Extension):
             )
         ]
 
-    def handle_approx_results(
-        self, soup: BeautifulSoup, word: str
+    def handle_online_approx_results(
+        self, soup: BeautifulSoup
     ) -> List[ExtensionResultItem]:
         """All elements to be displayed by the extension when an approximate result is found (i.e.: no exact match for given word is found).
 
         Args:
             soup (BeautifulSoup): Whole page soup.
-            word (str): Searched term. This is what is sent to RAE for consult.
 
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
@@ -197,7 +263,7 @@ class RAE(Extension):
             )
         return items
 
-    def handle_multiple_defs(
+    def handle_online_exact_results(
         self, soup: BeautifulSoup, word: str
     ) -> List[ExtensionResultItem]:
         """All elements to be displayed by the extension when an exact definition is found.
@@ -247,6 +313,62 @@ class RAE(Extension):
             )
         return items
 
+    def handle_offline(self, word: str) -> List[ExtensionResultItem]:
+        """Handle the case where the word is stored in the offline database.
+
+        Args:
+            word (str): The word to define.
+
+        Returns:
+            List[ExtensionResultItem]: All elements to be shown by the extension. 
+        """
+        case = RAE.detect_offline_case(word)
+        logger.info(f"{case=}")
+        max_shown_definitions = int(self.preferences["max_shown_definitions"])
+        logger.info(f"{max_shown_definitions=}")
+        if case == Case.EMPTY_WORD:
+            return RAE.handle_empty_word()
+        elif case == Case.EXACT_STORED_MATCH:
+            return [
+                ExtensionResultItem(
+                    icon="images/icon.png",
+                    name=f"{word} [{entry['abbrs']}]",
+                    description=entry["definition"],
+                    on_enter=CopyToClipboardAction(entry["definition"],),
+                    on_alt_enter=OpenUrlAction(
+                        f"{BASE_URL}/{word}#{entry['html_code']}"
+                    ),
+                )
+                for entry in STORED_DATA["words"][word][:max_shown_definitions]
+            ]
+
+    def handle_online(self, word: str) -> List[ExtensionResultItem]:
+        """Handle the case where the word needs a checkup with the online RAE DLE. This method will handle the request.
+
+        Args:
+            word (str): The word to define.
+
+        Raises:
+            RuntimeError: If the case detection fails, raise this exception. This probably means that RAE changed the page structure or that there is a new edge case that wasn't considered before.
+
+        Returns:
+            List[ExtensionResultItem]: All elements to be shown by the extension. 
+        """
+        req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
+        soup = BeautifulSoup(req.text, "html.parser")
+        case = RAE.detect_online_case(soup)
+
+        if case == Case.NO_MATCH:
+            # ! Bit of a catchall. Beware of this line, as it tries to handle all unforseen cases and give the user the ability to open the website.
+            items = RAE.handle_online_no_matches(word)
+        elif case == Case.APPROX_MATCH:
+            items = self.handle_online_approx_results(soup)
+        elif case == Case.EXACT_REQ_MATCH:
+            items = self.handle_online_exact_results(soup, word)
+        else:
+            raise RuntimeError(f"Got {case=}, which doesn't belong to class Case.")
+        return items
+
 
 class KeywordQueryEventListener(EventListener):
     def on_event(
@@ -265,23 +387,12 @@ class KeywordQueryEventListener(EventListener):
         word = event.get_argument()
         logger.info(f"word={word}")
 
-        if word is None:
-            items = RAE.handle_empty_word()
+        if not RAE.need_online_check(word):
+            logger.info(f"{word=} doesn't need online check.")
+            items = extension.handle_offline(word)
         else:
-            req = requests.get(f"{BASE_URL}/{word}", headers=HEADERS)
-            soup = BeautifulSoup(req.text, "html.parser")
-            case = RAE.detect_req_case(soup)
-
-            if case == Case.NO_MATCH:
-                items = RAE.handle_no_matches(
-                    word
-                )  # ! Bit of a catchall. Beware of this line, as it tries to handle all unforseen cases and give the user the ability to open the website.
-            elif case == Case.APPROX_MATCH:
-                items = extension.handle_approx_results(soup, word)
-            elif case == Case.EXACT_MATCH:
-                items = extension.handle_multiple_defs(soup, word)
-            else:
-                raise RuntimeError(f"Got {case=}, which doesn't belong to class Case.")
+            logger.info(f"{word=} needs online check.")
+            items = extension.handle_online(word)
 
         return RenderResultListAction(items)
 
