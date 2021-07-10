@@ -1,5 +1,5 @@
 {
-  "required_api_version": "^2.0.0",
+  "required_api_version": "^2.3.1",
   "name": "Diccionario de la Lengua Española de la RAE",
   "description": "Busca definiciones de términos según la Real Academia Española",
   "developer_name": "Sebastian Correa",
