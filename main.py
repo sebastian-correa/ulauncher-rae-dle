@@ -129,10 +129,7 @@ class RAE(Extension):
         Returns:
             bool: True if it needs an online check.
         """
-        if word is None or word in STORED_DATA["words"]:
-            return False
-        else:
-            return True
+        return word is not None and word not in STORED_DATA["words"]
 
     @staticmethod
     def detect_offline_case(word: str) -> Case:
@@ -270,13 +267,12 @@ class RAE(Extension):
             abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
 
             # This is done this weird way cause they put words inside <mark> tags but whitespaces and puntcuations outside of them.
-            words = ""
-            for child in definition.children:
-                if child.name not in {"span", "abbr"}:
-                    if isinstance(child, NavigableString):
-                        words += child
-                    else:
-                        words += child.get_text()
+            words = "".join(
+                child if isinstance(child, NavigableString) else child.get_text()
+                for child in definition.children
+                if child.name not in {"span", "abbr"}
+            )
+
             words = words.strip()
             chunks = chunkize_sentence(words, CHARACTERS_PER_LINE)
             definition_in_lines = "\n".join(chunks)
