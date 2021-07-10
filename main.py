@@ -28,31 +28,16 @@ HEADERS = {
 CHARACTERS_PER_LINE = 80
 NUMERIC_PREFERENCES = {"max_suggested_items", "max_shown_definitions"}
 
-p = (
-    Path.home()
-    / ".local"
-    / "share"
-    / "ulauncher"
-    / "extensions"
-    / "rae"
-    / "manifest.json"
-)
+ROOT_EXTENSION_FOLDER = Path(__file__).resolve().parent
+
+p = ROOT_EXTENSION_FOLDER / "manifest.json"
 with p.open("r") as f:
     DEFAULT_MANIFEST = json.load(f)
 DEFAULT_PREFERENCES = {
     x["id"]: x["default_value"] for x in DEFAULT_MANIFEST["preferences"]
 }
 
-p = (
-    Path.home()
-    / ".local"
-    / "share"
-    / "ulauncher"
-    / "extensions"
-    / "rae"
-    / "top_words"
-    / "top_1k_spanish_words.json"
-)
+p = ROOT_EXTENSION_FOLDER / "top_words" / "top_1k_spanish_words.json"
 with p.open("r") as f:
     STORED_DATA = json.load(f)
 
