@@ -26,7 +26,7 @@
     Permite buscar palabras en el DLE de la RAE, así como copiar facilmente las definiciones al portapapeles.
     <br />
     <br />
-    <a href="#about-the-project">Demo</a>
+    <a href="#sobre-el-proyecto">Demo</a>
     ·
     <a href="https://github.com/sebastian-correa/ulauncher-rae-dle/issues">Reportar un Bug</a>
     ·
@@ -71,7 +71,7 @@
 
 
 <!-- Sobre el Proyecto -->
-## Sobre el Proyecto
+# Sobre el Proyecto
 
 <p align="center">
   <a href="https://ext.ulauncher.io/-/github-sebastian-correa-ulauncher-rae-dle">
@@ -86,22 +86,22 @@ Además, tiene una base de datos local con las definiciones de las 1000 palabras
 
 
 <!-- Empezar a Usar -->
-## Empezar a Usar
+# Empezar a Usar
 
-### Requisitos
+## Requisitos
 Aparte de requerir ulauncher, RAE DLE requiere
 *	BeautifulSoup4
 *	Requests
 
-### Instalación
+## Instalación
 Hay dos formas de instalar la extensión.
-#### Automática
+### Automática
 1.	Abrir las preferencias de ulauncher.
 2.	Ir a la sección de extensiones.
 3.	Clickear en "Agregar extensión".
 4.	Pegar el [link a este repo](https://github.com/sebastian-correa/ulauncher-rae-dle): `https://github.com/sebastian-correa/ulauncher-rae-dle`.
 
-#### Manual
+### Manual
 1.	Cerrar ulauncher.
 2.	En una consola,
 	```
@@ -113,7 +113,7 @@ Hay dos formas de instalar la extensión.
 
 
 <!-- Uso -->
-## Uso
+# Uso
 En ulauncher, introducir la _keyword_ (ver [Opciones](#opciones)) seguido de un espacio y la consulta que se quiera hacer a en el DLE. Consultas con más de una palabra son válidas (por ejemplo `rae dicc).
 
 Existen cuatro resultados posibles:
@@ -127,7 +127,7 @@ Existen cuatro resultados posibles:
 4.  **Sin resultado:** En ocasiones, la búqueda ni existe en el DLE ni el DLE tiene sugerencias. En ese caso, se muestra un mensaje apropiado. 
 
 
-### Opciones
+## Opciones
 La extensión cuenta con varias opciones, como se ve en la imagen a continuación.
 
 <p align="center">
@@ -142,7 +142,7 @@ La extensión cuenta con varias opciones, como se ve en la imagen a continuació
 | **Max Shown Definitions:** | Máxima cantidad de definiciones que se muestran de una palabra que está en el DLE.                           | `10`        |
 
 <!-- Como contribuir -->
-## Como contribuir
+# Como contribuir
 
 Cualquier contribución que mejore la extensión es **bienvenida**. Par contribuir:
 
@@ -155,13 +155,13 @@ Cualquier contribución que mejore la extensión es **bienvenida**. Par contribu
 
 
 <!-- Licencia -->
-## Licencia
+# Licencia
 Distribuido bajo GPL-3.0. Ver `LICENSE` para más información.
 
 
 
 <!-- Contacto -->
-## Contacto
+# Contacto
 
 Sebastian Correa - [LinkedIn](https://www.linkedin.com/in/sebastian-correa-machado/)
 
