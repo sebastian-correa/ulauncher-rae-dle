@@ -73,7 +73,11 @@
 <!-- Sobre el Proyecto -->
 ## Sobre el Proyecto
 
-[![RAE DLE Demo][product-demo]](https://ext.ulauncher.io/-/github-sebastian-correa-ulauncher-rae-dle)
+<p align="center">
+  <a href="https://ext.ulauncher.io/-/github-sebastian-correa-ulauncher-rae-dle">
+    <img src="images/demo.gif">
+  </a>
+</p>
 
 Esta extensión para ulauncher permite buscar palabras en el DLE de la RAE de forma rápida.
 
@@ -115,7 +119,9 @@ TODO
 
 ### Opciones
 La extensión cuenta con varias opciones, como se ve en la imagen a continuación.
-[![Opciones de ulauncher-rae-dle][options-showcase]]
+<p align="center">
+  <img width="480" src="images/options.png">
+</p>
 | **Opción**                 | **Descripción**                                                                                              | **Default** |
 |----------------------------|--------------------------------------------------------------------------------------------------------------|-------------|
 | **Keyword**                | El keyword a escribir en ulauncher para activar la extensión.                                                | `rae`       |
@@ -161,5 +167,3 @@ Sebastian Correa - [LinkedIn](https://www.linkedin.com/in/sebastian-correa-macha
 [license-url]: https://github.com/sebastian-correa/ulauncher-rae-dle/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/sebastian-correa-machado/
-[product-demo]: images/demo.gif
-[options-showcase]: images/options.png
