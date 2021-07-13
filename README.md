@@ -114,8 +114,13 @@ TODO
 
 
 ### Opciones
-TODO
-
+La extensión cuenta con varias opciones, como se ve en la imagen a continuación.
+[![Opciones de ulauncher-rae-dle][options-showcase]]
+| **Opción**                 | **Descripción**                                                                                              | **Default** |
+|----------------------------|--------------------------------------------------------------------------------------------------------------|-------------|
+| **Keyword**                | El keyword a escribir en ulauncher para activar la extensión.                                                | `rae`       |
+| **Max Suggested Items**    | Máxima cantidad de las sugerencias de la RAE que se muestran cuando la búsqueda no tiene resultados exactos. | `10`        |
+| **Max Shown Definitions:** | Máxima cantidad de definiciones que se muestran de una palabra que está en el DLE.                           | `10`        |
 
 <!-- Como contribuir -->
 ## Como contribuir
@@ -157,3 +162,4 @@ Sebastian Correa - [LinkedIn](https://www.linkedin.com/in/sebastian-correa-macha
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/sebastian-correa-machado/
 [product-demo]: images/demo.gif
+[options-showcase]: images/options.png
