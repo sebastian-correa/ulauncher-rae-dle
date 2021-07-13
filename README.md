@@ -114,14 +114,27 @@ Hay dos formas de instalar la extensión.
 
 <!-- Uso -->
 ## Uso
-TODO
+En ulauncher, introducir la _keyword_ (ver [Opciones](#opciones)) seguido de un espacio y la consulta que se quiera hacer a en el DLE. Consultas con más de una palabra son válidas (por ejemplo `rae dicc).
+
+Existen cuatro resultados posibles:
+1.  **Palabra Vacía:** Si no se introduce una palabra tras la _keyword_, la extensión dará un mensaje apropiado.
+2.  **Resultado Exacto:** Si la búsqueda tiene un resultado exacto, se mostrará una lista con, a lo sumo, _Max Shown Definitions_ definiciones (ver [Opciones](#opciones)).
+    1. <key>Enter</key>: Copia la definición elegida al portapapeles.
+    2. <key>Alt</key> + <key>Enter</key>: Abre el DLE en el buscador y muestra la definición seleccionada.
+3.  **Resultado Aproximado:** Si la búsuqueda no tiene un resultado exacto, el DLE puede sugerir búsquedas alternativas, que se mostrarán como una lista de opciones.
+    1. <key>Enter</key>: Acepta la sugerencia seleccionada y realiza otra búsqueda mediante la extensión.
+    2. <key>Alt</key> + <key>Enter</key>: Abre el DLE en el buscador y muestra la página de sugerencias.
+4.  **Sin resultado:** En ocasiones, la búqueda ni existe en el DLE ni el DLE tiene sugerencias. En ese caso, se muestra un mensaje apropiado. 
 
 
 ### Opciones
 La extensión cuenta con varias opciones, como se ve en la imagen a continuación.
+
 <p align="center">
   <img width="480" src="images/options.png">
 </p>
+
+
 | **Opción**                 | **Descripción**                                                                                              | **Default** |
 |----------------------------|--------------------------------------------------------------------------------------------------------------|-------------|
 | **Keyword**                | El keyword a escribir en ulauncher para activar la extensión.                                                | `rae`       |
