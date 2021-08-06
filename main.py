@@ -316,6 +316,9 @@ class RAE(Extension):
             if def_class in {'j', 'm'}:
                 item = self.parse_definition(word, definition)
                 items.append(item)
+
+                if len(items) == max_shown_definitions:
+                    break
             elif def_class[0] == "k":
                 word = definition.text
             else:
