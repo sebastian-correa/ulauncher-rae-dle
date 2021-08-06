@@ -6,7 +6,7 @@ from enum import Enum, unique, auto
 
 import requests
 from bs4 import BeautifulSoup
-from bs4.element import NavigableString, ResultSet
+from bs4.element import NavigableString, PageElement, ResultSet, Tag
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
@@ -256,43 +256,23 @@ class RAE(Extension):
             )
         return items
 
-    def handle_online_exact_results(
-        self, soup: BeautifulSoup, word: str
-    ) -> List[ExtensionResultItem]:
-        """All elements to be displayed by the extension when an exact definition is found.
+    def parse_definition(self, word: str, p_tag: PageElement) -> ExtensionResultItem:
+        abbrs = " ".join(abbr.text for abbr in p_tag.find_all("abbr"))
 
-        Args:
-            soup (BeautifulSoup): Whole page soup.
-            word (str): Word to which the definitions belong.
+        # This is done this weird way cause they put words inside <mark> tags but whitespaces and puntcuations outside of them.
+        words = "".join(
+            child if isinstance(child, NavigableString) else child.get_text()
+            for child in p_tag.children
+            if child.name not in {"span", "abbr"}
+        )
 
-        Returns:
-            List[ExtensionResultItem]: All elements to be shown by the extension.
-        """
-        logger.debug(f"Word has exact results.")
-        items = []
-        max_shown_definitions = int(self.preferences["max_shown_definitions"])
-        logger.info(f"max_shown_definitions={max_shown_definitions}")
+        words = words.strip()
+        chunks = chunkize_sentence(words, CHARACTERS_PER_LINE)
+        definition_in_lines = "\n".join(chunks)
 
-        definitions = soup.find_all("p", {"class": "j"})
+        code = p_tag["id"]
 
-        for definition in definitions[:max_shown_definitions]:
-            abbrs = " ".join(abbr.text for abbr in definition.find_all("abbr"))
-
-            # This is done this weird way cause they put words inside <mark> tags but whitespaces and puntcuations outside of them.
-            words = "".join(
-                child if isinstance(child, NavigableString) else child.get_text()
-                for child in definition.children
-                if child.name not in {"span", "abbr"}
-            )
-
-            words = words.strip()
-            chunks = chunkize_sentence(words, CHARACTERS_PER_LINE)
-            definition_in_lines = "\n".join(chunks)
-
-            code = definition["id"]
-
-            items.append(
-                ExtensionResultItem(
+        return ExtensionResultItem(
                     icon="images/icon.png",
                     name=f"{word} [{abbrs}]",
                     description=definition_in_lines,
@@ -302,8 +282,39 @@ class RAE(Extension):
                     on_alt_enter=OpenUrlAction(
                         f"{BASE_URL}/{word}#{code}"
                     ),  # https://github.com/Ulauncher/Ulauncher/blob/dev/ulauncher/api/shared/action/OpenUrlAction.py
-                )
-            )
+        )
+    
+    def handle_online_exact_results(
+        self, soup: BeautifulSoup
+    ) -> List[ExtensionResultItem]:
+        """All elements to be displayed by the extension when an exact definition is found.
+
+        Args:
+            soup (BeautifulSoup): Whole page soup.
+
+        Returns:
+            List[ExtensionResultItem]: All elements to be shown by the extension.
+        """
+        logger.debug(f"Word has exact results.")
+        items = []
+        max_shown_definitions = int(self.preferences["max_shown_definitions"])
+        logger.info(f"max_shown_definitions={max_shown_definitions}")
+
+        # definitions = soup.find_all("p", {"class": "j"})
+
+        article = soup.find('article')
+        word = article.find('header').text
+
+        for definition in article.find_all('p'):
+            def_class = definition['class'][0]
+            if def_class in {'j', 'm'}:
+                item = self.parse_definition(word, definition)
+                items.append(item)
+            elif def_class[0] == "k":
+                word = definition.text
+            else:
+                continue
+            
         return items
 
     def handle_offline(self, word: str) -> List[ExtensionResultItem]:
@@ -362,7 +373,7 @@ class RAE(Extension):
         elif case == Case.APPROX_MATCH:
             items = self.handle_online_approx_results(soup)
         elif case == Case.EXACT_REQ_MATCH:
-            items = self.handle_online_exact_results(soup, word)
+            items = self.handle_online_exact_results(soup)
         else:
             raise RuntimeError(f"Got {case=}, which doesn't belong to class Case.")
         return items
