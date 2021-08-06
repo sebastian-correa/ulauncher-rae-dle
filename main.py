@@ -110,6 +110,7 @@ class RAE(Extension):
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
         """
+        logger.debug("Handle empty word.")
         return [
             ExtensionResultItem(
                 icon="images/icon.png",
@@ -129,7 +130,9 @@ class RAE(Extension):
         Returns:
             bool: True if it needs an online check.
         """
-        return word is not None and word not in STORED_DATA["words"]
+        need = word is not None and word not in STORED_DATA["words"]
+        logger.debug(f"Need online Check for {word}: {need}.")
+        return need
 
     @staticmethod
     def detect_offline_case(word: str) -> Case:
@@ -144,7 +147,7 @@ class RAE(Extension):
         Returns:
             Case: A Case.
         """
-        print(word)
+        logger.debug(f"Detect case for guaranteed offline word={word}.")
         if word is None:
             return Case.EMPTY_WORD
         elif word in STORED_DATA["words"]:
@@ -162,6 +165,7 @@ class RAE(Extension):
         Returns:
             Case: A Case.
         """
+        logger.debug(f"Detect case for online word given soup.")
         if soup.find("p", {"class": "j"}) is not None:
             return Case.EXACT_REQ_MATCH
         elif soup.find("div", {"class": "item-list"}) is not None:
@@ -179,6 +183,7 @@ class RAE(Extension):
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension. 
         """
+        logger.debug(f"Handle online no matches for word={word}.")
         return [
             ExtensionResultItem(
                 icon="images/icon.png",
@@ -200,6 +205,7 @@ class RAE(Extension):
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
         """
+        logger.debug(f"Word has approx results.")
         # approx_results = soup.find_all("a", {"data-acc": "LISTA APROX"})
         # Example result:
         #     <div class="n1"><a data-acc="LISTA APROX" data-cat="FETCH" data-eti="ad" href="/ad" title="Ir a la entrada">ad</a> (ad)</div>
@@ -257,6 +263,7 @@ class RAE(Extension):
         Returns:
             List[ExtensionResultItem]: All elements to be shown by the extension.
         """
+        logger.debug(f"Word has exact results.")
         items = []
         max_shown_definitions = int(self.preferences["max_shown_definitions"])
         logger.info(f"max_shown_definitions={max_shown_definitions}")
@@ -304,9 +311,11 @@ class RAE(Extension):
             List[ExtensionResultItem]: All elements to be shown by the extension. 
         """
         case = RAE.detect_offline_case(word)
-        logger.info(f"{case=}")
+        logger.debug(f"Handle word in offline databse with {case=}.")
+
         max_shown_definitions = int(self.preferences["max_shown_definitions"])
-        logger.info(f"{max_shown_definitions=}")
+        logger.debug(f"{max_shown_definitions=}")
+        
         if case == Case.EMPTY_WORD:
             return RAE.handle_empty_word()
         elif case == Case.EXACT_STORED_MATCH:
@@ -322,6 +331,9 @@ class RAE(Extension):
                 )
                 for entry in STORED_DATA["words"][word][:max_shown_definitions]
             ]
+        else:
+            logger.debug(f"Handle offline got case={case} when only compatible cases are Case.EMPTY_WORD and Case.EXACT_STORED_MATCH")
+            raise RuntimeError(f"Handle offline got case={case} when only compatible cases are Case.EMPTY_WORD and Case.EXACT_STORED_MATCH")
 
     def handle_online(self, word: str) -> List[ExtensionResultItem]:
         """Handle the case where the word needs a checkup with the online RAE DLE. This method will handle the request.
@@ -353,7 +365,7 @@ class RAE(Extension):
 
 class KeywordQueryEventListener(EventListener):
     def on_event(
-        self, event: KeywordQueryEvent, extension: Extension
+        self, event: KeywordQueryEvent, extension: RAE
     ) -> RenderResultListAction:
         """Handle the user calling the extension via ulauncher.
 
@@ -366,7 +378,7 @@ class KeywordQueryEventListener(EventListener):
         """
 
         word = event.get_argument()
-        logger.info(f"word={word}")
+        logger.info(f"event with word={word}")
 
         if not RAE.need_online_check(word):
             logger.info(f"{word=} doesn't need online check.")
