@@ -159,6 +159,11 @@ class RAE(Extension):
     def detect_online_case(soup: BeautifulSoup) -> Case:
         """Detects the case of the given soup, so that the program can process it accordingly.
 
+        The soup is evaluated in this order to determine the case:
+            1) A page that returns with at least 1 <p> with class=j is considered an exact definition. There might be more <p> tags with class=j or class=m to signal more definitions (those with class=m are for similar words, like the plural).
+            2) A page that returns with at least 1 <div> with class=item-list is considered an approximate result.
+            3) All other cases are handled as Case.NO_MATCH.
+
         Args:
             soup (BeautifulSoup): The webpage soup.
 
