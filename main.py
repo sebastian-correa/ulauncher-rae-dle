@@ -256,7 +256,7 @@ class RAE(Extension):
             )
         return items
 
-    def parse_definition(self, word: str, p_tag: PageElement) -> ExtensionResultItem:
+    def parse_definition(self, word: str, p_tag: Tag) -> ExtensionResultItem:
         abbrs = " ".join(abbr.text for abbr in p_tag.find_all("abbr"))
 
         # This is done this weird way cause they put words inside <mark> tags but whitespaces and puntcuations outside of them.
@@ -303,7 +303,13 @@ class RAE(Extension):
         # definitions = soup.find_all("p", {"class": "j"})
 
         article = soup.find('article')
-        word = article.find('header').text
+        if not isinstance(article, Tag):
+            raise RuntimeError('soup has no <article> tag.')
+        
+        header = article.find('header')
+        if not isinstance(header, Tag):
+            raise RuntimeError('article has no <header> tag and thus no first word can be found.')
+        word = header.text
 
         for definition in article.find_all('p'):
             def_class = definition['class'][0]
