@@ -89,7 +89,7 @@ Además, tiene una base de datos local con las definiciones de las 1000 palabras
 # Empezar a Usar
 
 ## Requisitos
-Aparte de requerir ulauncher, RAE DLE requiere
+Aparte de requerir ulauncher, RAE DLE requiere de los siguientes paquetes de python
 *	BeautifulSoup4
 *	Requests
 
@@ -107,6 +107,8 @@ Hay dos formas de instalar la extensión.
 	```
 	cd ~/.local/share/ulauncher/extensions
 	git clone https://github.com/sebastian-correa/ulauncher-rae-dle.git
+	cd ulauncher-rae-dle
+  	pip3 install -r requirements.txt
 	```
 3.	Abrir ulauncher.
 
